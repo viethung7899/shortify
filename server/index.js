@@ -2,7 +2,8 @@ const express = require('express');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const yup = require('yup');
-const nanoid = require('nanoid');
+const { nanoid } = require('nanoid/non-secure');
+
 const Shorty = require('./database/shorty');
 
 const app = express();
@@ -10,7 +11,10 @@ const app = express();
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
-app.use(express.static('./public'));
+app.use(express.static('public'));
+app.use(express.urlencoded({ extended: false }));
+
+// Set view engine
 app.set('view engine', 'ejs');
 
 // Valid schema
@@ -24,35 +28,24 @@ const schema = yup.object().shape({
 
 const port = process.env.PORT || 5000;
 
-app.get('/:name', async (req, res) => {
-  const {name} = req.params
-  // TODO: redirect to url
-  // Find
-  try {
-    const shorty = await Shorty.findOne({name});
-    if (shorty) {
-      return res.redirect(shorty.url);
-    } else {
-      throw new Error('Not found');
-    }
-  } catch (error) {
-    next(error);
-  }
+app.get('/', (req, res) => {
+  return res.render('index', { result: null });
 });
 
-app.post('/api/shorty', async (req, res, next) => {
-  // TODO: create a short url
+// TODO: create a short url
+app.post('/', async (req, res, next) => {
   let { url, name } = req.body;
   try {
+    if (!name || name.trim().length === 0) {
+      name = nanoid(5);
+    }
+
+    console.log(name);
     // Validate
     await schema.validate({
       url,
       name,
     });
-
-    if (!name) {
-      name = nanoid(5);
-    }
 
     // Find
     const found = await Shorty.findOne({ name }).exec();
@@ -63,23 +56,45 @@ app.post('/api/shorty', async (req, res, next) => {
 
     // Add
     const shorty = new Shorty({ url: url, name: name });
-    const saved = await shorty.save();
-    res.json({
-      message: `Success`,
-      newUrl: `localhost:3000/${saved.name}`
-    })
+    await shorty.save();
+    const result = {
+      type: 'SUCCESS',
+      message: 'Successful',
+      url: `${req.headers.host}/${name}`,
+    };
+    return res.render('index', { result: result });
   } catch (error) {
     next(error);
   }
+});
+
+// TODO: redirect to url
+app.get('/:name', async (req, res, next) => {
+  const { name } = req.params;
+
+  // Find
+  const shorty = await Shorty.findOne({ name });
+  if (shorty) {
+    return res.redirect(shorty.url);
+  } else {
+    next();
+  }
+});
+
+// Redirect to 404 page
+app.use((req, res) => {
+  res.status(404).render('404');
 });
 
 // Error handling middleware
 app.use((error, req, res, next) => {
   statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(statusCode);
-  res.json({
+  const result = {
+    type: 'ERROR',
     message: error.message,
-  });
+  };
+  res.render('index', { result: result });
 });
 
 app.listen(port, () => {
