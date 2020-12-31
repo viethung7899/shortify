@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+  <title>Shortify</title>
+</head>
+<body>
+  <section class="hero is-primary is-fullheight is-bold">
+  <%- include('./header') %> 
+  <div class="hero-body">
+    <div class="container columns is-centered is-vcentered is-fluid">
+      <div class="column is-4 has-text-centered">
+        <h1 class="title is-1">Shorten your URL</h1>
+      </div>
+      <div class="column is-6 p-6">
+        <form action="/" method="POST" autocomplete="off">
+          <div class="field">
+            <label class="label subtitle is-3">URL</label>
+            <div class="control has-background-grey-light">
+              <input class="input is-primary" type="text" name="url" placeholder="eg. https://www.google.com">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label subtitle is-3">Name (optional)</label>
+            <div class="control has-background-grey-light">
+              <input class="input is-primary" type="text" name="name" placeholder="eg. google" >
+            </div>
+          </div>
+          <button class="button is-primary is-inverted is-outlined" type="submit">Shortify...</button>
+        </form>
+        <% if (result) { %>
+          <% if (result.type === 'SUCCESS') { %>
+            <div class="notification is-primary is-light my-3"><%= result.message %> <strong><%= result.url %></strong></div>
+          <% } else { %>
+            <div class="notification is-danger is-light my-3"><%= result.message %></div>
+          <% } %>
+        <% } %>
+      </div>
+    </div>
+  </div>
+  </section>
+</body>
+</html>
